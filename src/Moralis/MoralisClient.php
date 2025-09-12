@@ -27,11 +27,6 @@ class MoralisClient
         return [$response->getStatusCode(), (string) $response->getBody()];
     }
 
-    public function getConfiguration(): Configuration
-    {
-        return $this->configuration;
-    }
-
     private function initializeClient(): void
     {
         $this->http = new Client([
