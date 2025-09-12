@@ -1,6 +1,6 @@
 {
     "name": "ophelios/php-ethereum-moralis",
-    "description": "Fetch price from Moralis.io for PHP.",
+    "description": "Simple token price fetching from Moralis.io for PHP.",
     "type": "library",
     "license": "MIT",
     "autoload": {
