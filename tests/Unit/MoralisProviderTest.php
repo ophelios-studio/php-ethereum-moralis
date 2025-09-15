@@ -3,7 +3,6 @@
 require_once __DIR__ . '/FakeCache.php';
 
 use Moralis\MoralisProvider;
-use Moralis\Token;
 use PHPUnit\Framework\TestCase;
 
 class MoralisProviderTest extends TestCase
@@ -20,7 +19,7 @@ class MoralisProviderTest extends TestCase
     public function testFetchPriceFromCache(): void
     {
         $cache = new FakeCache();
-        $cache->set('moralis_price_eth_0xabc_nopct', new \Moralis\MoralisResult(
+        $cache->set('moralis_price_eth_0xabc', new \Moralis\MoralisToken(
             tokenName: '', tokenSymbol: '', tokenLogo: null, tokenDecimals: 0, nativePrice: null,
             usdPrice: 123.0, usdPriceFormatted: '', exchangeName: null, exchangeAddress: null,
             tokenAddress: '0xabc', priceLastChangedAtBlock: null, blockTimestamp: null,
@@ -31,9 +30,9 @@ class MoralisProviderTest extends TestCase
 
         $client = $this->mockClient(function () { $this->fail('Should not call client when cached'); });
         $provider = new MoralisProvider($client, $cache);
-        $result = $provider->fetchPrice(new Token('0xABC'));
+        $result = $provider->fetchToken('0xABC');
 
-        $this->assertInstanceOf(\Moralis\MoralisResult::class, $result);
+        $this->assertInstanceOf(\Moralis\MoralisToken::class, $result);
         $this->assertSame(123.0, $result->usdPrice);
     }
 
@@ -45,28 +44,15 @@ class MoralisProviderTest extends TestCase
         });
         $cache = new FakeCache();
         $provider = new MoralisProvider($client, $cache);
-        $res = $provider->fetchPrice(new Token('0xabc'));
+        $res = $provider->fetchToken('0xabc');
 
-        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $this->assertInstanceOf(\Moralis\MoralisToken::class, $res);
         $this->assertSame(1.23, $res->usdPrice);
         // Confirm cache set with default TTL
-        $this->assertTrue($cache->has('moralis_price_eth_0xabc_nopct'));
+        $this->assertTrue($cache->has('moralis_price_eth_0xabc'));
         $lastCall = end($cache->calls);
         $this->assertSame('set', $lastCall[0]);
         $this->assertSame(MoralisProvider::DEFAULT_CACHE_TTL, $lastCall[3]);
-    }
-
-    public function testFetchPriceWithPercentChange(): void
-    {
-        $client = $this->mockClient(function (string $path) {
-            TestCase::assertSame('erc20/0xabc/price?chain=eth&include=percent_change', $path);
-            return [200, '{"usd": 1.23, "24hr_percent_change": 2}'];
-        });
-        $provider = new MoralisProvider($client);
-        $res = $provider->fetchPrice(new Token('0xabc'), true);
-        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
-        $this->assertSame(1.23, $res->usdPrice);
-        $this->assertSame(2.0, $res->percentChange24hr);
     }
 
     public function testFetchPriceWrapsGuzzleException(): void
@@ -76,7 +62,7 @@ class MoralisProviderTest extends TestCase
         $provider = new MoralisProvider($client);
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Failed to fetch price from Moralis: boom');
-        $provider->fetchPrice(new Token('0xabc'));
+        $provider->fetchToken('0xabc');
     }
 
     public function testFetchPriceNon2xxOrInvalidJsonThrows(): void
@@ -89,7 +75,7 @@ class MoralisProviderTest extends TestCase
             $client = $this->mockClient(fn() => [$status, $body]);
             $provider = new MoralisProvider($client);
             try {
-                $provider->fetchPrice(new Token('0xabc'));
+                $provider->fetchToken('0xabc');
                 $this->fail('Expected RuntimeException');
             } catch (RuntimeException $e) {
                 $this->assertStringContainsString('Moralis price error (HTTP', $e->getMessage());

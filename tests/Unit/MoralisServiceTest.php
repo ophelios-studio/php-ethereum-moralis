@@ -2,13 +2,9 @@
 
 require_once __DIR__ . '/FakeCache.php';
 
-use Moralis\Configuration;
 use Moralis\MoralisClient;
-use Moralis\MoralisProvider;
 use Moralis\MoralisService;
-use Moralis\Token;
 use PHPUnit\Framework\TestCase;
-use Psr\SimpleCache\CacheInterface;
 
 class MoralisServiceTest extends TestCase
 {
@@ -34,10 +30,10 @@ class MoralisServiceTest extends TestCase
         $service = new MoralisService($client);
         $cache = new FakeCache();
         $service->setCache($cache);
-        $res = $service->fetchPrice(new Token('0xabc'));
-        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $res = $service->fetchToken('0xabc');
+        $this->assertInstanceOf(\Moralis\MoralisToken::class, $res);
         $this->assertSame(2.34, $res->usdPrice);
-        $this->assertTrue($cache->has('moralis_price_eth_0xabc_nopct'));
+        $this->assertTrue($cache->has('moralis_price_eth_0xabc'));
     }
 
     public function testConstructWithClientInstance(): void
@@ -48,8 +44,8 @@ class MoralisServiceTest extends TestCase
         };
         $service = new MoralisService($client);
         $service->setCache(new FakeCache());
-        $res = $service->fetchPrice(new Token('0xabc'));
-        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $res = $service->fetchToken('0xabc');
+        $this->assertInstanceOf(\Moralis\MoralisToken::class, $res);
         $this->assertSame(9.99, $res->usdPrice);
     }
 }

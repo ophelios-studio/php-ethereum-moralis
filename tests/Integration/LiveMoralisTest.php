@@ -1,7 +1,6 @@
 <?php namespace Integration;
 
 use Moralis\MoralisService;
-use Moralis\Token;
 use PHPUnit\Framework\TestCase;
 
 class LiveMoralisTest extends TestCase
@@ -10,8 +9,7 @@ class LiveMoralisTest extends TestCase
     {
         $apiKey = $this->getApiKey();
         $service = new MoralisService($apiKey);
-        $token = new Token("0x289ff00235d2b98b0145ff5d4435d3e92f9540a6");
-        $result = $service->fetchPrice($token);
+        $result = $service->fetchToken("0x289ff00235d2b98b0145ff5d4435d3e92f9540a6");
         print_r($result);
         $this->assertSame("Book of Ethereum", $result->tokenName);
         $this->assertSame("BOOE", $result->tokenSymbol);
