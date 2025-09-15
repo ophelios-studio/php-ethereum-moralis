@@ -1,0 +1,50 @@
+name: CI - Unit and Live Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  unit-tests:
+    name: PHP Unit and Integration Tests
+    runs-on: ubuntu-latest
+    env:
+      MORALIS_API_KEY: ${{ secrets.MORALIS_API_KEY }}
+      QLTY_TOKEN: ${{ secrets.QLTY_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP (with Xdebug for coverage)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: xdebug
+          tools: composer
+
+      - name: Validate composer.json
+        run: composer validate --no-check-lock
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run Unit tests with coverage
+        run: XDEBUG_MODE=coverage vendor/bin/phpunit --coverage-clover clover.xml
+
+      - name: Upload coverage to Qlty
+        uses: qltysh/qlty-action/coverage@v2
+        with:
+          token: ${{secrets.QLTY_TOKEN}}
+          files: ./clover.xml
