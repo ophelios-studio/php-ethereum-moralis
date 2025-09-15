@@ -1,5 +1,8 @@
 # PHP Ethereum Moralis
 
+[![Maintainability](https://qlty.sh/badges/758f34a9-dd12-48fc-a9d7-170b0db16ae6/maintainability.svg)](https://qlty.sh/gh/ophelios-studio/projects/php-ethereum-moralis)
+[![Code Coverage](https://qlty.sh/badges/758f34a9-dd12-48fc-a9d7-170b0db16ae6/coverage.svg)](https://qlty.sh/gh/ophelios-studio/projects/php-ethereum-moralis)
+
 A tiny PHP library to fetch ERC‑20 token information (including price) from Moralis.io. Simple facade, PSR‑16 caching support, and a typed result object.
 
 ## ✨ Features
