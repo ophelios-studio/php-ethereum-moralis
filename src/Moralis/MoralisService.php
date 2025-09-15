@@ -1,12 +1,11 @@
 <?php namespace Moralis;
 
 use Psr\SimpleCache\CacheInterface;
-use stdClass;
 
 class MoralisService
 {
     private readonly MoralisClient $client;
-    private CacheInterface $cache;
+    private ?CacheInterface $cache = null;
 
     public function __construct(string|MoralisClient $client)
     {
@@ -20,7 +19,7 @@ class MoralisService
         $this->cache = $cache;
     }
 
-    public function fetchPrice(Token $token, bool $includePercentChange = false): stdClass
+    public function fetchPrice(Token $token, bool $includePercentChange = false): MoralisResult
     {
         $provider = new MoralisProvider($this->client, $this->cache);
         return $provider->fetchPrice($token, $includePercentChange);

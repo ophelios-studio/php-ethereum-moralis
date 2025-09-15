@@ -20,13 +20,21 @@ class MoralisProviderTest extends TestCase
     public function testFetchPriceFromCache(): void
     {
         $cache = new FakeCache();
-        $cache->set('moralis_price_eth_0xabc_nopct', (object)['price' => 123], 300);
+        $cache->set('moralis_price_eth_0xabc_nopct', new \Moralis\MoralisResult(
+            tokenName: '', tokenSymbol: '', tokenLogo: null, tokenDecimals: 0, nativePrice: null,
+            usdPrice: 123.0, usdPriceFormatted: '', exchangeName: null, exchangeAddress: null,
+            tokenAddress: '0xabc', priceLastChangedAtBlock: null, blockTimestamp: null,
+            possibleSpam: null, verifiedContract: null, pairAddress: null, pairTotalLiquidityUsd: null,
+            securityScore: null, usdPrice24hr: null, usdPrice24hrUsdChange: null, usdPrice24hrPercentChange: null,
+            percentChange24hr: null
+        ), 300);
 
         $client = $this->mockClient(function () { $this->fail('Should not call client when cached'); });
         $provider = new MoralisProvider($client, $cache);
         $result = $provider->fetchPrice(new Token('0xABC'));
 
-        $this->assertEquals((object)['price' => 123], $result);
+        $this->assertInstanceOf(\Moralis\MoralisResult::class, $result);
+        $this->assertSame(123.0, $result->usdPrice);
     }
 
     public function testFetchPriceSuccessAndCaches(): void
@@ -39,7 +47,8 @@ class MoralisProviderTest extends TestCase
         $provider = new MoralisProvider($client, $cache);
         $res = $provider->fetchPrice(new Token('0xabc'));
 
-        $this->assertEquals((object)['usd' => 1.23], $res);
+        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $this->assertSame(1.23, $res->usdPrice);
         // Confirm cache set with default TTL
         $this->assertTrue($cache->has('moralis_price_eth_0xabc_nopct'));
         $lastCall = end($cache->calls);
@@ -55,7 +64,9 @@ class MoralisProviderTest extends TestCase
         });
         $provider = new MoralisProvider($client);
         $res = $provider->fetchPrice(new Token('0xabc'), true);
-        $this->assertEquals((object)['usd' => 1.23, '24hr_percent_change' => 2], $res);
+        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $this->assertSame(1.23, $res->usdPrice);
+        $this->assertSame(2.0, $res->percentChange24hr);
     }
 
     public function testFetchPriceWrapsGuzzleException(): void

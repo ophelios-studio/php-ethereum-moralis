@@ -3,7 +3,6 @@
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\SimpleCache\CacheInterface;
 use RuntimeException;
-use stdClass;
 
 class MoralisProvider
 {
@@ -23,7 +22,7 @@ class MoralisProvider
         private readonly ?CacheInterface $cache = null
     ) {}
 
-    public function fetchPrice(Token $token, bool $includePercentChange = false): stdClass
+    public function fetchPrice(Token $token, bool $includePercentChange = false): MoralisResult
     {
         $cacheKey = $this->generateCacheKey($token->chain, $token->contractAddress, $includePercentChange);
         if ($this->cache) {
@@ -50,8 +49,9 @@ class MoralisProvider
             throw new RuntimeException(sprintf('Moralis price error (HTTP %d): %s', $status, $body));
         }
 
-        $this->cache?->set($cacheKey, $json, $this->cacheTtl);
-        return $json;
+        $result = MoralisResult::fromStd($json);
+        $this->cache?->set($cacheKey, $result, $this->cacheTtl);
+        return $result;
     }
 
     private function generateCacheKey(string $chain, string $address, bool $includePercent): string

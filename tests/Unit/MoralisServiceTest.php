@@ -35,7 +35,8 @@ class MoralisServiceTest extends TestCase
         $cache = new FakeCache();
         $service->setCache($cache);
         $res = $service->fetchPrice(new Token('0xabc'));
-        $this->assertEquals((object)['usd' => 2.34], $res);
+        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $this->assertSame(2.34, $res->usdPrice);
         $this->assertTrue($cache->has('moralis_price_eth_0xabc_nopct'));
     }
 
@@ -48,6 +49,7 @@ class MoralisServiceTest extends TestCase
         $service = new MoralisService($client);
         $service->setCache(new FakeCache());
         $res = $service->fetchPrice(new Token('0xabc'));
-        $this->assertEquals((object)['usd' => 9.99], $res);
+        $this->assertInstanceOf(\Moralis\MoralisResult::class, $res);
+        $this->assertSame(9.99, $res->usdPrice);
     }
 }
