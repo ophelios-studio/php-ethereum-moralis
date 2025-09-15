@@ -19,9 +19,9 @@ class MoralisService
         $this->cache = $cache;
     }
 
-    public function fetchPrice(Token $token, bool $includePercentChange = false): MoralisResult
+    public function fetchToken(string $contractAddress, string $chain = "eth"): MoralisToken
     {
         $provider = new MoralisProvider($this->client, $this->cache);
-        return $provider->fetchPrice($token, $includePercentChange);
+        return $provider->fetchToken($contractAddress, $chain);
     }
 }

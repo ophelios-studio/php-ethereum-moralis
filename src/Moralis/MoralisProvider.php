@@ -22,9 +22,9 @@ class MoralisProvider
         private readonly ?CacheInterface $cache = null
     ) {}
 
-    public function fetchPrice(Token $token, bool $includePercentChange = false): MoralisResult
+    public function fetchToken(string $contractAddress, string $chain = "eth"): MoralisToken
     {
-        $cacheKey = $this->generateCacheKey($token->chain, $token->contractAddress, $includePercentChange);
+        $cacheKey = $this->generateCacheKey($chain, $contractAddress);
         if ($this->cache) {
             $cached = $this->cache->get($cacheKey);
             if ($cached) {
@@ -33,10 +33,9 @@ class MoralisProvider
         }
 
         $query = http_build_query([
-            'chain' => $token->chain,
-            'include' => $includePercentChange ? 'percent_change' : null,
+            'chain' => $chain
         ]);
-        $path = sprintf('erc20/%s/price?%s', $token->contractAddress, $query);
+        $path = sprintf('erc20/%s/price?%s', $contractAddress, $query);
 
         try {
             [$status, $body] = $this->client->get($path);
@@ -49,13 +48,13 @@ class MoralisProvider
             throw new RuntimeException(sprintf('Moralis price error (HTTP %d): %s', $status, $body));
         }
 
-        $result = MoralisResult::fromStd($json);
+        $result = MoralisToken::fromStd($json);
         $this->cache?->set($cacheKey, $result, $this->cacheTtl);
         return $result;
     }
 
-    private function generateCacheKey(string $chain, string $address, bool $includePercent): string
+    private function generateCacheKey(string $chain, string $address): string
     {
-        return sprintf('moralis_price_%s_%s_%s', strtolower($chain), strtolower($address), $includePercent ? 'pct' : 'nopct');
+        return sprintf('moralis_price_%s_%s', strtolower($chain), strtolower($address));
     }
 }

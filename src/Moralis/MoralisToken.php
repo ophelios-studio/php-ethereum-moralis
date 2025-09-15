@@ -1,6 +1,6 @@
 <?php namespace Moralis;
 
-readonly class MoralisResult
+readonly class MoralisToken
 {
     public function __construct(
         public string $tokenName,
