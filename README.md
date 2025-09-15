@@ -1,95 +1,90 @@
-# PHP Ethereum ENS 🚀
+# PHP Ethereum Moralis
 
-[![Maintainability](https://qlty.sh/badges/7487c070-b46a-4e39-97ae-4abd686f2320/maintainability.svg)](https://qlty.sh/gh/ophelios-studio/projects/php-ethereum-ens)
-[![Code Coverage](https://qlty.sh/badges/7487c070-b46a-4e39-97ae-4abd686f2320/coverage.svg)](https://qlty.sh/gh/ophelios-studio/projects/php-ethereum-ens)
-
-A lightweight PHP library for reading ENS (Ethereum Name Service) records using any standard JSON‑RPC provider. Read‑only by design, fast to adopt, and easy to extend.
+A tiny PHP library to fetch ERC‑20 token information (including price) from Moralis.io. Simple facade, PSR‑16 caching support, and a typed result object.
 
 ## ✨ Features
-- 🔄 Reverse lookup (address → primary ENS name)
-- 🧩 Resolve text records and avatar for a name
-- 👤 Simple profile hydrator for common records
-- 🎛️ Tiny facade (EnsService) for convenience
-- 🔒 Read‑only eth_call usage (no private keys needed)
-- ⚡ Works with any Ethereum‑compatible RPC endpoint
+- Fetch current token information (including price) by contract address
+- Optional caching via PSR‑16 (e.g., APCu, files, Redis)
+- Typed result: Moralis\MoralisToken with all common fields
 
 ## 💿 Installation
 Install with Composer:
 
 ```
-composer require ophelios/php-ethereum-ens
+composer require ophelios/php-ethereum-moralis
 ```
+
+Requirements: PHP >= 8.4
 
 ## 🌱 Quick start
 ```php
-use Ens\EnsService;
+use Moralis\MoralisService;
 
-$rpcUrl = getenv('ENS_PROVIDER_URL') ?: 'https://mainnet.infura.io/v3/<key>';
-$ens = new EnsService($rpcUrl);
+$apiKey  = getenv('MORALIS_API_KEY');
+$service = new MoralisService($apiKey);
 
-// Reverse resolve (address -> ENS name)
-$name = $ens->resolveEnsName('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'); // vitalik.eth
+// Fetch an ERC‑20 price (defaults to chain "eth")
+$token = $service->fetchToken('0x289ff00235d2b98b0145ff5d4435d3e92f9540a6');
 
-// Resolve a profile (common records by default)
-$profile = $ens->resolveProfile('vitalik.eth');
+echo $token->tokenName . " (" . $token->tokenSymbol . ") => $" . $token->usdPrice . "\n";
 ```
 
-### 🎯 Resolve individual records
+Specify a different chain:
 ```php
-use Ens\EnsService;
-
-$rpcUrl = getenv('ENS_PROVIDER_URL') ?: 'https://mainnet.infura.io/v3/<key>';
-$ens = new EnsService($rpcUrl);
-
-// Resolve single/multiple records (without profile)
-$avatar  = $ens->resolveAvatar('vitalik.eth');
-$url     = $ens->resolveRecord('vitalik.eth', 'url');
-$records = $ens->resolveRecords('vitalik.eth', ['email', 'url']);
+$token = $service->fetchToken('0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', 'polygon');
 ```
 
-## 📚 API overview
-- Ens\\EnsService
-  - __construct(string|Ens\\Web3ClientInterface $clientOrRpcUrl)
-  - resolveEnsName(string $address): ?string
-  - resolveProfile(string $ensName, array $records = Ens\\ProfileHydrator::DEFAULT_RECORDS): Ens\\EnsProfile
-  - resolveAvatar(string $ensName, bool $parentFallback = true): ?string
-  - resolveRecord(string $ensName, string|array $record): ?string
-  - resolveRecords(string $ensName, array $records): ?array
+## 📦 Result type: MoralisToken
+The library maps Moralis API JSON into a typed object:
 
-- Ens\\Resolver: resolve individual records for a name. Handles inherited resolvers and one‑level parent fallback for avatar.
-- Ens\\ReverseLookup: reverse resolve address → name using registry, with default reverse resolver fallback.
-- Ens\\ProfileHydrator: populate an EnsProfile with a set of requested records.
-- Ens\\Utilities: normalize(string $name), namehash(string $name)
-- Ens\\Web3ClientInterface / Ens\\Web3Client: thin wrapper around web3p/web3.php for eth_call with retries.
+- tokenName, tokenSymbol, tokenLogo, tokenDecimals
+- nativePrice: object|null (value, decimals, name, symbol, address)
+- usdPrice, usdPriceFormatted
+- exchangeName, exchangeAddress
+- tokenAddress
+- priceLastChangedAtBlock, blockTimestamp
+- possibleSpam, verifiedContract
+- pairAddress, pairTotalLiquidityUsd
+- securityScore
+- usdPrice24hr, usdPrice24hrUsdChange, usdPrice24hrPercentChange
+- percentChange24hr
 
-## ⚙️ Configuration (custom client)
-You can pass a custom client instead of a URL if you need to control retries or timeouts:
+## 🧰 Using a cache (PSR‑16)
+You can attach any PSR‑16 cache. For convenience, ophelios/php-apcu-cache provides an APCu implementation.
 
 ```php
-use Ens\Web3Client;
-use Ens\Configuration;
-use Ens\EnsService;
+use Moralis\MoralisService;
+use Ophelios\Cache\ApcuCache; // from ophelios/php-apcu-cache
 
-$client = new Web3Client(new Configuration(
-    rpcUrl: 'https://mainnet.infura.io/v3/<key>',
-    timeoutMs: 10000,
-    maxRetries: 3,
-));
+$service = new MoralisService(getenv('MORALIS_API_KEY'));
+$service->setCache(new ApcuCache());
 
-$ens = new EnsService($client);
+$token = $service->fetchToken('0x289ff00235d2b98b0145ff5d4435d3e92f9540a6');
 ```
 
-## 🧰 Default records
-ProfileHydrator::DEFAULT_RECORDS includes:
-- avatar, url, email, description
-- social aliases: ["com.twitter", "twitter"], ["com.github", "github"]
+Default cache TTL is 300 seconds.
 
-When an array of keys is provided, the first matching key is mapped to the corresponding profile property; all keys in that group are still available in `$profile->texts`.
+## ⚙️ Custom client/configuration
+If you need to control base URL or timeouts, you can pass your own MoralisClient.
+
+```php
+use Moralis\Configuration;
+use Moralis\MoralisClient;
+use Moralis\MoralisService;
+
+$cfg = new Configuration(
+    apiKey: getenv('MORALIS_API_KEY'),
+    baseUrl: 'https://deep-index.moralis.io/api/v2.2/',
+    timeout: 10,
+);
+$client  = new MoralisClient($cfg);
+$service = new MoralisService($client);
+```
 
 ## 🧪 Testing
-The test suite contains both unit tests (with mocks) and an optional live integration test.
+This repo includes unit tests and an optional live integration test.
 
-Run all tests (unit + integration):
+Run all tests:
 ```
 vendor/bin/phpunit
 ```
@@ -99,9 +94,9 @@ Run unit tests only:
 vendor/bin/phpunit --testsuite Unit
 ```
 
-Integration tests require an Ethereum RPC URL with ENS access. Set an environment variable:
+Integration test requires a Moralis API key. You can place it in an .env file:
 ```
-ENS_PROVIDER_URL=https://mainnet.infura.io/v3/<key>
+MORALIS_API_KEY=your-key-here
 ```
 
 Then run:
@@ -110,19 +105,8 @@ vendor/bin/phpunit --testsuite Integration
 ```
 
 ## 🤝 Contributing
-We welcome contributions! If you find a bug or have an enhancement in mind:
-- Open an issue to discuss it, or
-- Send a pull request (PR) with a clear description and relevant tests.
-
-To work on the project locally:
-- Install dependencies: `composer install`
-- Run unit tests: `vendor/bin/phpunit --testsuite Unit`
-- Please do not modify integration tests in PRs unless specifically discussed.
+- Open an issue for bugs or feature ideas
+- Submit a PR with a clear description and tests when applicable
 
 ## 📄 License
-MIT License © 2025 Ophelios. See the LICENSE file for full text.
-
-## 🗒️ Notes
-- Read‑only on‑chain calls via eth_call. No private keys are required.
-- For internationalized domains, `normalize()` attempts to use `idn_to_ascii` when available.
-- Mainnet registry and default reverse resolver addresses are embedded in the library.
+MIT License © 2025 Ophelios. See LICENSE for details.
